@@ -21,3 +21,7 @@ Los resultados de ambos módulos se cruzan en una capa de validación para contr
 3. **Inferencia con Modelos Preentrenados:** Procesamiento del audio mediante redes neuronales especializadas para la clasificación de atributos de alto nivel.
 4. **Cruce y Validación (Motor Híbrido):** Script de integración que compara los valores físicos obtenidos con las predicciones de los modelos para verificar consistencia y detectar discrepancias.
 5. **Visualización:** Interfaz gráfica para la presentación de métricas físicas, espectrogramas y tarjetas de diagnóstico validado.
+
+
+## LINKS
+https://mozilladatacollective.com/datasets/cmqi28y2v004imf076oh7e5zs
