@@ -25,3 +25,4 @@ Los resultados de ambos módulos se cruzan en una capa de validación para contr
 
 ## LINKS
 https://mozilladatacollective.com/datasets/cmqi28y2v004imf076oh7e5zs
+https://www.kaggle.com/datasets/toponowicz/spoken-language-identification
