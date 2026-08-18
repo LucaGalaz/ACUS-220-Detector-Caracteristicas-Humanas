@@ -6,7 +6,7 @@ Proyecto para la asignatura de Acústica Computacional. Sistema en Python orient
 
 El sistema procesa archivos de audio o grabaciones en tiempo real para estimar diversos atributos del hablante. La arquitectura se plantea bajo un enfoque **híbrido**: combina el procesamiento digital de señales para la extracción de métricas físicas de la onda con modelos de aprendizaje profundo preentrenados para la clasificación automática. 
 
-Los resultados de ambos módulos se cruzan en una capa de validación para contrastar las predicciones del modelo con la física del sonido, asignando un grado de confianza a las inferencias generadas.
+Los resultados de ambos módulos se cruzan en una capa de validación para contrastar las predicciones del modelo con las métricas del sonido, asignando un grado de confianza a las inferencias generadas.
 
 ## Características a Detectar
 
