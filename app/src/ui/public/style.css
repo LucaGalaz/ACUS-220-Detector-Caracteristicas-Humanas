@@ -41,13 +41,23 @@ html.light-theme {
 
 body, html {
     font-family: var(--vh-font);
-    background-color: var(--vh-bg-color);
-    background: var(--vh-bg-radial);
+    background-color: transparent;
     color: var(--vh-text-primary);
     width: 100%;
     height: 100vh;
     overflow: hidden; /* STRICT VIEWPORT LOCK */
-    transition: background 0.4s ease, color 0.4s ease;
+    transition: color 0.4s ease;
+}
+
+.webgl-bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -2;
+    display: block;
+    pointer-events: none;
 }
 
 /* ── LAYOUT ENFORCEMENT ── */
@@ -214,7 +224,7 @@ body, html {
     border-radius: 50%;
     animation: star-movement-bottom 4s linear infinite alternate;
     z-index: 0;
-    background: radial-gradient(circle, #52a764 0%, transparent 20%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 20%);
 }
 
 .vh-splash-enter .border-gradient-top {
@@ -227,7 +237,7 @@ body, html {
     border-radius: 50%;
     animation: star-movement-top 4s linear infinite alternate;
     z-index: 0;
-    background: radial-gradient(circle, #52a764 0%, transparent 20%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 20%);
 }
 
 .vh-splash-enter .inner-content {

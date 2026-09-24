@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
+    <canvas id="webgl-canvas" class="webgl-bg-canvas"></canvas>
     <div class="vh-workspace">
         <header class="vh-header">
             <div class="vh-logo-area">
@@ -32,7 +33,6 @@
 
         <!-- Splash Screen -->
         <div class="vh-splash" id="splash-screen">
-            <div id="floating-lines-container"></div>
             <h1 class="vh-splash-title">Voihunt</h1>
             
             <button id="btn-enter-splash" class="vh-splash-enter">
@@ -100,7 +100,7 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="floating-lines.js"></script>
+    <script src="webgl-shader.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
