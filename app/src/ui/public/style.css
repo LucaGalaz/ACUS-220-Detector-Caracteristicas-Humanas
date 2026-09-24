@@ -11,8 +11,11 @@
     --vh-card-border: rgba(255, 255, 255, 0.08);
     --vh-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     
-    --vh-accent: #52a764;
-    --vh-accent-hover: #60c375;
+    --vh-accent: #ffffff;
+    --vh-accent-hover: #e0e0e0;
+    --vh-accent-text: #000000;
+    --vh-pulse-color: 255, 255, 255;
+    --vh-btn-icon-filter: invert(1);
     --vh-dock-bg: #1a2a1f;
     --vh-dock-border: rgba(255, 255, 255, 0.1);
 }
@@ -27,9 +30,12 @@ html.light-theme {
     --vh-card-border: rgba(0, 0, 0, 0.05);
     --vh-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
     
-    --vh-accent: #439053;
-    --vh-accent-hover: #52a764;
-    --vh-dock-bg: #ffffff;
+    --vh-accent: #000000;
+    --vh-accent-hover: #333333;
+    --vh-accent-text: #ffffff;
+    --vh-pulse-color: 0, 0, 0;
+    --vh-btn-icon-filter: invert(0);
+    --vh-dock-bg: rgba(255, 255, 255, 0.7);
     --vh-dock-border: rgba(0, 0, 0, 0.1);
 }
 
@@ -122,6 +128,7 @@ body, html {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    margin-right: 16px; /* Para que la luna no se corte con el borde */
 }
 
 .vh-theme-label {
@@ -160,7 +167,7 @@ body, html {
     height: 1.25rem;
     width: 1.25rem;
     border-radius: 9999px;
-    background-color: var(--vh-text-primary);
+    background-color: var(--vh-accent-text);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s ease;
     transform: translateX(0);
@@ -379,6 +386,10 @@ html.light-theme .vh-splash-enter:hover .inner-content {
     height: 20px;
 }
 
+.vh-btn-record img {
+    filter: var(--vh-btn-icon-filter);
+}
+
 /* Left Button (Play/Record) */
 .vh-btn-record {
     background-color: var(--vh-accent);
@@ -395,9 +406,9 @@ html.light-theme .vh-splash-enter:hover .inner-content {
 }
 
 @keyframes pulse-record {
-    0% { box-shadow: 0 0 0 0 rgba(82, 167, 100, 0.7); }
-    70% { box-shadow: 0 0 0 12px rgba(82, 167, 100, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(82, 167, 100, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(var(--vh-pulse-color), 0.7); }
+    70% { box-shadow: 0 0 0 12px rgba(var(--vh-pulse-color), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--vh-pulse-color), 0); }
 }
 
 /* Right Button (Upload) */
@@ -428,7 +439,7 @@ html.light-theme .vh-splash-enter:hover .inner-content {
 /* ── SECONDARY BUTTONS ── */
 .vh-btn-secondary {
     background: var(--vh-accent);
-    color: white;
+    color: var(--vh-accent-text);
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
