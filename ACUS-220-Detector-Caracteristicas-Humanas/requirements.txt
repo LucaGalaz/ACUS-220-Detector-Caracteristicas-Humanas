@@ -1,0 +1,12 @@
+numpy
+scipy
+librosa
+praat-parselmouth
+opensmile
+transformers
+speechbrain
+torch
+torchaudio
+gradio
+matplotlib
+soundfile

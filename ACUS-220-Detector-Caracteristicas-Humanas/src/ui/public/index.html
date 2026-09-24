@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es" class="dark-theme">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ACUS-220 Voihunt</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div class="vh-workspace">
+        <header class="vh-header">
+            <div class="vh-logo-area">
+                <img id="brand-logo" src="assets/logo-white.svg" alt="Voihunt Logo">
+                <span class="vh-brand-text hidden" id="brand-text">Voihunt</span>
+            </div>
+            <div class="vh-header-right">
+                <a href="#" class="vh-about-link">About</a>
+                <div class="vh-theme-switch-wrapper">
+                    <span id="theme-label-light" class="vh-theme-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    </span>
+                    <button id="theme-toggle" class="vh-theme-switch" role="switch" aria-checked="true" aria-label="Toggle between dark and light mode">
+                        <span class="vh-theme-switch-thumb"></span>
+                    </button>
+                    <span id="theme-label-dark" class="vh-theme-label active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Splash Screen -->
+        <div class="vh-splash" id="splash-screen">
+            <div id="floating-lines-container"></div>
+            <h1 class="vh-splash-title">Voihunt</h1>
+            
+            <button id="btn-enter-splash" class="vh-splash-enter">
+                <div class="border-gradient-bottom"></div>
+                <div class="border-gradient-top"></div>
+                <div class="inner-content">ENTER</div>
+            </button>
+        </div>
+
+        <!-- Main Dashboard 2x2 + 1 -->
+        <main class="vh-dashboard hidden" id="main-dashboard">
+            <!-- Left Grid (2x2) -->
+            <div class="vh-grid-left">
+                <div class="vh-card" id="card-demographic">
+                    <h3>PERFIL DEMOGRAFICO</h3>
+                    <div class="vh-card-content" id="res-demographic">Esperando audio...</div>
+                </div>
+                <div class="vh-card" id="card-physical">
+                    <h3>ESTADO FISICO Y HABITOS</h3>
+                    <div class="vh-card-content" id="res-physical">Esperando audio...</div>
+                </div>
+                <div class="vh-card" id="card-emotional">
+                    <h3>ESTADO EMOCIONAL</h3>
+                    <div class="vh-card-content" id="res-emotional">Esperando audio...</div>
+                </div>
+                <div class="vh-card" id="card-export">
+                    <h3>EXPORTACION</h3>
+                    <div class="vh-card-content vh-center">
+                        <button id="btn-export" class="vh-btn-secondary" disabled>Descargar Reporte JSON</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column (1 full height) -->
+            <div class="vh-grid-right">
+                <div class="vh-card" id="card-diagnostic">
+                    <h3>VALIDACION Y DIAGNOSTICO</h3>
+                    <div class="vh-card-content" id="res-diagnostic">Esperando audio...</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Audio Dock -->
+        <div class="vh-audio-dock hidden" id="audio-dock">
+            <button id="btn-record" class="vh-dock-btn vh-btn-record" aria-label="Grabar">
+                <img id="icon-record" src="assets/play-white.svg" alt="Grabar">
+            </button>
+            
+            <div class="vh-audio-waveform">
+                <canvas id="audio-canvas"></canvas>
+            </div>
+            
+            <button id="btn-upload" class="vh-dock-btn vh-btn-upload" aria-label="Subir Archivo">
+                <img id="icon-upload" src="assets/upload-file-white.svg" alt="Subir">
+            </button>
+            <!-- Hidden file input -->
+            <input type="file" id="file-input" accept="audio/*" style="display: none;">
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="vh-loading-overlay hidden">
+        <div class="vh-spinner"></div>
+        <p>Procesando Audio...</p>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="floating-lines.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

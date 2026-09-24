@@ -1,0 +1,53 @@
+"""
+Extracción de características usando openSMILE.
+"""
+import logging
+import opensmile
+from typing import Dict
+import pandas as pd
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+class OpenSmileExtractor:
+    def __init__(self):
+        """Inicializa el extractor openSMILE con eGeMAPS."""
+        try:
+            self.smile = opensmile.Smile(
+                feature_set=opensmile.FeatureSet.eGeMAPSv02,
+                feature_level=opensmile.FeatureLevel.Functionals,
+            )
+            logger.info("openSMILE inicializado.")
+        except Exception as e:
+            logger.error(f"Error al inicializar openSMILE: {e}")
+            self.smile = None
+
+    def extract_features(self, audio_path: str) -> Dict[str, float]:
+        """
+        Extrae características avanzadas usando openSMILE.
+        :param audio_path: Ruta al archivo de audio.
+        :return: Diccionario con características extraídas.
+        """
+        features = {}
+        if self.smile is None:
+            logger.warning("openSMILE no disponible. Retornando dict vacío.")
+            return features
+            
+        try:
+            logger.info(f"openSMILE procesando: {audio_path}")
+            df: pd.DataFrame = self.smile.process_file(audio_path)
+            
+            # Convertir DataFrame a diccionario (primer fila)
+            if not df.empty:
+                row = df.iloc[0].to_dict()
+                for k, v in row.items():
+                    if pd.isna(v) or np.isnan(v):
+                        features[k] = 0.0
+                    else:
+                        features[k] = float(v)
+                        
+            logger.info("Características openSMILE extraídas con éxito.")
+            return features
+        except Exception as e:
+            logger.error(f"Error en OpenSmileExtractor: {e}")
+            return features
