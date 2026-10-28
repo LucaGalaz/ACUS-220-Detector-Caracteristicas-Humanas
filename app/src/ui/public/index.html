@@ -4,103 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ACUS-220 Voihunt</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=voice-feedback-9">
 </head>
 <body>
-    <canvas id="webgl-canvas" class="webgl-bg-canvas"></canvas>
+    <svg class="vh-dot-pattern" width="100%" height="100%" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <pattern id="vh-background-dots" width="16" height="16" patternUnits="userSpaceOnUse" patternContentUnits="userSpaceOnUse" x="0" y="0">
+                <circle cx="1" cy="1" r="1" />
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" stroke-width="0" fill="url(#vh-background-dots)" />
+    </svg>
     <div class="vh-workspace">
         <header class="vh-header">
-            <div class="vh-logo-area">
-                <img id="brand-logo" src="assets/logo-white.svg" alt="Voihunt Logo">
+            <button id="brand-home" class="vh-logo-area" type="button" aria-label="Volver al inicio">
+                <img id="brand-logo" src="assets/logo-white.svg" alt="">
                 <span class="vh-brand-text hidden" id="brand-text">Voihunt</span>
-            </div>
+            </button>
             <div class="vh-header-right">
-                <a href="#" class="vh-about-link">About</a>
-                <div class="vh-theme-switch-wrapper">
-                    <span id="theme-label-light" class="vh-theme-label">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <button id="theme-toggle" class="vh-theme-toggle" type="button" role="switch" aria-checked="true" aria-label="Modo oscuro" title="Cambiar a modo claro">
+                    <span id="theme-icon-sun" class="vh-theme-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42M6.35 17.65l-1.42 1.42"/></svg>
                     </span>
-                    <button id="theme-toggle" class="vh-theme-switch" role="switch" aria-checked="true" aria-label="Toggle between dark and light mode">
-                        <span class="vh-theme-switch-thumb"></span>
-                    </button>
-                    <span id="theme-label-dark" class="vh-theme-label active">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <span id="theme-icon-moon" class="vh-theme-icon hidden" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6.25 6.25 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
                     </span>
-                </div>
+                </button>
             </div>
         </header>
 
         <!-- Splash Screen -->
         <div class="vh-splash" id="splash-screen">
+            <p class="vh-splash-welcome vh-haze">Bienvenido a</p>
             <h1 class="vh-splash-title">Voihunt</h1>
-            
-            <button id="btn-enter-splash" class="vh-splash-enter">
-                <div class="border-gradient-bottom"></div>
-                <div class="border-gradient-top"></div>
-                <div class="inner-content">ENTER</div>
-            </button>
+            <p class="vh-splash-description vh-haze">Descubre lo que la voz cuenta</p>
+            <button id="btn-enter-splash" class="vh-splash-enter" type="button">CONTINUAR</button>
         </div>
 
         <!-- Main Dashboard 2x2 + 1 -->
         <main class="vh-dashboard hidden" id="main-dashboard">
-            <!-- Left Grid (2x2) -->
-            <div class="vh-grid-left">
-                <div class="vh-card" id="card-demographic">
-                    <h3>PERFIL DEMOGRAFICO</h3>
-                    <div class="vh-card-content" id="res-demographic">Esperando audio...</div>
+            <div id="workspace-stage" class="vh-workspace-stage">
+                <div id="workspace-empty" class="vh-workspace-empty vh-haze" role="status" aria-live="polite">
+                    <h2 id="workspace-stage-title">Todo empieza con la voz</h2>
+                    <p id="workspace-stage-description">Graba un audio o sube un archivo para descubrirlo.</p>
                 </div>
-                <div class="vh-card" id="card-physical">
-                    <h3>ESTADO FISICO Y HABITOS</h3>
-                    <div class="vh-card-content" id="res-physical">Esperando audio...</div>
-                </div>
-                <div class="vh-card" id="card-emotional">
-                    <h3>ESTADO EMOCIONAL</h3>
-                    <div class="vh-card-content" id="res-emotional">Esperando audio...</div>
-                </div>
-                <div class="vh-card" id="card-export">
-                    <h3>EXPORTACION</h3>
-                    <div class="vh-card-content vh-center">
-                        <button id="btn-export" class="vh-btn-secondary" disabled>Descargar Reporte JSON</button>
+                <section id="recording-review" class="vh-recording-review hidden" aria-labelledby="recording-review-title" tabindex="-1">
+                    <div class="vh-recording-review-heading">
+                        <h2 id="recording-review-title">Tu grabación está lista</h2>
+                        <span id="recording-duration"></span>
+                    </div>
+                    <p class="vh-recording-review-hint">Escúchala antes de analizar.</p>
+                    <audio id="recording-preview" controls preload="metadata" aria-label="Escuchar tu grabación"></audio>
+                    <p id="recording-error" class="vh-upload-error" role="alert"></p>
+                    <div class="vh-recording-review-actions">
+                        <button id="recording-discard" class="vh-upload-cancel" type="button">Descartar</button>
+                        <button id="recording-analyze" class="vh-upload-submit" type="button">Analizar audio</button>
+                    </div>
+                </section>
+            </div>
+            <div id="results-grid" class="vh-results-grid hidden" role="region" aria-label="Resultados del análisis">
+                <!-- Left Grid (2x2) -->
+                <div class="vh-grid-left">
+                    <div class="vh-card" id="card-demographic">
+                        <h3>PERFIL DEMOGRAFICO</h3>
+                        <div class="vh-card-content" id="res-demographic"></div>
+                    </div>
+                    <div class="vh-card" id="card-physical">
+                        <h3>ESTADO FISICO Y HABITOS</h3>
+                        <div class="vh-card-content" id="res-physical"></div>
+                    </div>
+                    <div class="vh-card" id="card-emotional">
+                        <h3>ESTADO EMOCIONAL</h3>
+                        <div class="vh-card-content" id="res-emotional"></div>
+                    </div>
+                    <div class="vh-card" id="card-export">
+                        <h3>EXPORTACION</h3>
+                        <div class="vh-card-content vh-center">
+                            <button id="btn-export" class="vh-btn-secondary" disabled>Descargar Reporte JSON</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Right Column (1 full height) -->
-            <div class="vh-grid-right">
-                <div class="vh-card" id="card-diagnostic">
-                    <h3>VALIDACION Y DIAGNOSTICO</h3>
-                    <div class="vh-card-content" id="res-diagnostic">Esperando audio...</div>
+
+                <!-- Right Column (1 full height) -->
+                <div class="vh-grid-right">
+                    <div class="vh-card" id="card-diagnostic">
+                        <h3>VALIDACION Y DIAGNOSTICO</h3>
+                        <div class="vh-card-content" id="res-diagnostic"></div>
+                    </div>
                 </div>
             </div>
         </main>
 
         <!-- Floating Audio Dock -->
-        <div class="vh-audio-dock hidden" id="audio-dock">
-            <button id="btn-record" class="vh-dock-btn vh-btn-record" aria-label="Grabar">
-                <img id="icon-record" src="assets/play-white.svg" alt="Grabar">
+        <div class="vh-audio-dock hidden" id="audio-dock" role="group" aria-label="Controles de audio">
+            <button id="btn-record" class="vh-dock-btn vh-btn-record" aria-label="Grabar" title="Grabar audio">
+                <img id="icon-record" src="assets/microphone-white.svg" alt="Grabar">
             </button>
-            
-            <div class="vh-audio-waveform">
-                <canvas id="audio-canvas"></canvas>
-            </div>
-            
+
             <button id="btn-upload" class="vh-dock-btn vh-btn-upload" aria-label="Subir Archivo">
-                <img id="icon-upload" src="assets/upload-file-white.svg" alt="Subir">
+                <img id="icon-upload" src="assets/upload-white.svg" alt="Subir">
             </button>
-            <!-- Hidden file input -->
-            <input type="file" id="file-input" accept="audio/*" style="display: none;">
         </div>
     </div>
-    
+
+    <dialog id="upload-dialog" class="vh-upload-dialog" aria-labelledby="upload-title">
+        <div class="vh-upload-heading">
+            <div>
+                <h2 id="upload-title">Sube tu audio</h2>
+            </div>
+        </div>
+        <div id="upload-drop-frame" class="vh-upload-drop-frame">
+            <button id="upload-dropzone" class="vh-upload-dropzone" type="button" aria-describedby="upload-formats upload-error">
+                <span class="vh-upload-icons" aria-hidden="true">
+                    <span class="vh-upload-icon-card"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13M9 8l12-2"/><ellipse cx="6" cy="18" rx="3" ry="3"/><ellipse cx="18" cy="16" rx="3" ry="3"/></svg></span>
+                    <span class="vh-upload-icon-card"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 15v2m4-5v8m4-6v4"/></svg></span>
+                    <span class="vh-upload-icon-card"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></span>
+                </span>
+                <span class="vh-upload-prompt" id="upload-prompt">Arrastra tu audio aquí</span>
+                <span class="vh-upload-hint">o haz clic para buscarlo en tu equipo</span>
+                <span class="vh-upload-browse"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 7l5-5 5 5M12 2v14"/></svg>Elegir archivo</span>
+                <span id="upload-formats" class="vh-upload-formats">WAV, MP3, M4A, OGG y otros audios</span>
+            </button>
+        </div>
+        <input type="file" id="file-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac,.aac,.opus,.aiff,.aif" hidden>
+        <p id="upload-error" class="vh-upload-error" role="alert"></p>
+        <div id="upload-selection" class="vh-upload-selection hidden" aria-live="polite">
+            <div class="vh-upload-file-row">
+                <span class="vh-upload-file-icon" aria-hidden="true">♫</span>
+                <div class="vh-upload-file-info"><p id="upload-file-name"></p><span id="upload-file-size"></span></div>
+                <span class="vh-upload-ready">Listo</span>
+                <button id="upload-remove" class="vh-icon-button" type="button" aria-label="Quitar archivo"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M5 6l1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14M10 10v7m4-7v7"/></svg></button>
+            </div>
+            <audio id="upload-preview" controls preload="metadata" aria-label="Escuchar el audio seleccionado"></audio>
+        </div>
+        <div class="vh-upload-footer">
+            <button id="upload-cancel" class="vh-upload-cancel" type="button">Cancelar</button>
+            <button id="upload-submit" class="vh-upload-submit" type="button" disabled>Analizar audio</button>
+        </div>
+    </dialog>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="vh-loading-overlay hidden">
         <div class="vh-spinner"></div>
         <p>Procesando Audio...</p>
     </div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="webgl-shader.js"></script>
-    <script src="app.js"></script>
+
+    <script src="audio-text-feedback.js?v=voice-feedback-9"></script>
+    <script src="file-upload.js?v=voice-feedback-9"></script>
+    <script src="app.js?v=voice-feedback-9"></script>
 </body>
 </html>

@@ -32,7 +32,10 @@ public_dir = os.path.join(os.path.dirname(__file__), "src", "ui", "public")
 # Servir index.html en la raíz
 @app.get("/")
 async def root():
-    return FileResponse(os.path.join(public_dir, "index.html"))
+    return FileResponse(
+        os.path.join(public_dir, "index.html"),
+        headers={"Cache-Control": "no-cache"},
+    )
 
 # Servir el resto de archivos (assets, css, js)
 app.mount("/", StaticFiles(directory=public_dir), name="static")

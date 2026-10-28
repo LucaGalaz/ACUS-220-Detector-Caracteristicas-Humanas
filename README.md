@@ -23,6 +23,14 @@ Los resultados de ambos módulos se cruzan en una capa de validación para contr
 5. **Visualización:** Interfaz gráfica para la presentación de métricas físicas, espectrogramas y tarjetas de diagnóstico validado.
 
 
+## Interfaz
+
+El fondo de puntos se adapta al modo claro y oscuro. La implementación actual
+y la preparación del componente React se describen en
+[Fondo de puntos](Documentacion/fondo-puntos.md).
+La descripción del inicio, el botón CONTINUAR y la transición circular de tema
+se describen en [Inicio y temas](Documentacion/inicio-y-temas.md).
+
 ## LINKS
 https://mozilladatacollective.com/datasets/cmqi28y2v004imf076oh7e5zs
 https://www.kaggle.com/datasets/toponowicz/spoken-language-identification
