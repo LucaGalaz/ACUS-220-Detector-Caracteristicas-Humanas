@@ -1,6 +1,3 @@
-"""
-Punto de entrada principal para la aplicación ACUS-220 (FastAPI).
-"""
 import logging
 import sys
 import os
@@ -11,7 +8,7 @@ from fastapi.responses import FileResponse
 
 from src.api.routes import router as api_router
 
-# Configurar logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
@@ -23,13 +20,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="ACUS-220 Voihunt API")
 
-# Incluir rutas de API
+
 app.include_router(api_router, prefix="/api")
 
-# Montar frontend estático
+
 public_dir = os.path.join(os.path.dirname(__file__), "src", "ui", "public")
 
-# Servir index.html en la raíz
+
 @app.get("/")
 async def root():
     return FileResponse(
@@ -37,7 +34,7 @@ async def root():
         headers={"Cache-Control": "no-cache"},
     )
 
-# Servir el resto de archivos (assets, css, js)
+
 app.mount("/", StaticFiles(directory=public_dir), name="static")
 
 def main():

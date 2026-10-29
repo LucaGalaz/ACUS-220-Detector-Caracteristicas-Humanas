@@ -1,4 +1,3 @@
-// Audio-only adaptation of the supplied upload card, hosted in a native dialog.
 window.createAudioUpload = function ({ dialog, onSubmit }) {
     const find = (id) => dialog.querySelector(`#${id}`);
     const input = find('file-input');
@@ -48,6 +47,10 @@ window.createAudioUpload = function ({ dialog, onSubmit }) {
             error.textContent = 'Este archivo está vacío. Elige otro audio.';
             return;
         }
+        if (file.size > 25 * 1024 * 1024) {
+            error.textContent = 'El audio supera el límite de 25 MB.';
+            return;
+        }
         clearSelection();
         selectedFile = file;
         previewUrl = URL.createObjectURL(file);
@@ -85,7 +88,7 @@ window.createAudioUpload = function ({ dialog, onSubmit }) {
         resetDrag();
         if (event.dataTransfer.files.length) chooseFiles(Array.from(event.dataTransfer.files));
     });
-    // Keep drops outside the target from navigating away from the app.
+
     dialog.addEventListener('dragover', (event) => event.preventDefault());
     dialog.addEventListener('drop', (event) => event.preventDefault());
     find('upload-remove').addEventListener('click', () => {
@@ -129,6 +132,6 @@ window.createAudioUpload = function ({ dialog, onSubmit }) {
     return {
         open() { if (!dialog.open) dialog.showModal(); },
         close() { if (dialog.open) dialog.close(); },
-        showError(message) { if (!dialog.open) dialog.showModal(); error.textContent = message; },
+        showError(message, file) { if (file) chooseFiles([file]); if (!dialog.open) dialog.showModal(); error.textContent = message; },
     };
 };

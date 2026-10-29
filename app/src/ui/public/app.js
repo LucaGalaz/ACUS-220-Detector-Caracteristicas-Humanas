@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- UI Elements ---
+
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIconSun = document.getElementById('theme-icon-sun');
     const themeIconMoon = document.getElementById('theme-icon-moon');
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const workspaceEmpty = document.getElementById('workspace-empty');
     const workspaceStageTitle = document.getElementById('workspace-stage-title');
     const workspaceStageDescription = document.getElementById('workspace-stage-description');
+    const recordingLevel = document.getElementById('recording-level');
     const audioDock = document.getElementById('audio-dock');
     const btnEnterSplash = document.getElementById('btn-enter-splash');
     const brandText = document.getElementById('brand-text');
@@ -29,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDiscardRecording = document.getElementById('recording-discard');
     const btnAnalyzeRecording = document.getElementById('recording-analyze');
 
-    // --- State ---
     let isRecording = false;
     let mediaRecorder = null;
     let lastResults = null;
@@ -42,27 +42,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let revealResultsPending = false;
     let resultAnimations = [];
     let audioTextFeedback = null;
+    let lastAnalysisError = '';
     const uploadPanel = window.createAudioUpload({
         dialog: document.getElementById('upload-dialog'),
         onSubmit: processUploadedFile,
     });
-    
-    // --- Theme Toggling ---
+
     function setTheme(isLight) {
         htmlElement.classList.toggle('light-theme', isLight);
         htmlElement.classList.toggle('dark-theme', !isLight);
-        
-        themeToggleBtn.setAttribute('aria-checked', !isLight); // true = dark
+
+        themeToggleBtn.setAttribute('aria-checked', !isLight);
         themeToggleBtn.title = isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro';
         themeIconSun.classList.toggle('hidden', isLight);
         themeIconMoon.classList.toggle('hidden', !isLight);
-        
+
         brandLogo.src = isLight ? 'assets/logo-black.svg' : 'assets/logo-white.svg';
         try {
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        } catch {
-            // Theme changes still work when browser storage is unavailable.
-        }
+        } catch {}
     }
 
     async function toggleTheme() {
@@ -75,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.startViewTransition) {
             themeTransitionRunning = true;
             htmlElement.classList.add('theme-fading');
-            // Commit the old colors before applying the new theme.
+
             getComputedStyle(document.body).backgroundColor;
             setTheme(isLight);
             window.setTimeout(() => {
@@ -119,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     themeToggleBtn.addEventListener('click', toggleTheme);
 
-    // --- Splash Screen Transition ---
     function enterDashboard() {
         if (!splashScreen.classList.contains('hidden')) {
             splashScreen.classList.add('hidden');
@@ -127,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audioDock.classList.remove('hidden');
             brandText.classList.remove('hidden');
             syncRecordingUI();
-            
+
             (pendingRecording ? recordingReview : btnRecord).focus({ preventScroll: true });
         }
     }
@@ -152,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     brandHome.addEventListener('click', () => {
         if (!splashScreen.classList.contains('hidden')) return;
         recordingGeneration++;
-        if (['starting', 'recording', 'stopping'].includes(recordingState)) {
+        if (['starting', 'requesting', 'recording', 'stopping'].includes(recordingState)) {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
             recordingStream?.getTracks().forEach(track => track.stop());
             setRecordingState(pendingRecording ? 'review' : 'idle');
@@ -166,14 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
         syncRecordingUI();
         btnEnterSplash.focus({ preventScroll: true });
     });
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && e.target === document.body) {
             enterDashboard();
         }
     });
 
-    // --- Audio Conversion Helper ---
     function audioBufferToWav(buffer) {
         let numOfChan = buffer.numberOfChannels;
         let length = buffer.length * numOfChan * 2 + 44;
@@ -187,19 +183,19 @@ document.addEventListener('DOMContentLoaded', () => {
         function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
         function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
-        setUint32(0x46464952); // "RIFF"
-        setUint32(length - 8); // file length - 8
-        setUint32(0x45564157); // "WAVE"
-        setUint32(0x20746d66); // "fmt " chunk
-        setUint32(16); // length = 16
-        setUint16(1); // PCM (uncompressed)
+        setUint32(0x46464952);
+        setUint32(length - 8);
+        setUint32(0x45564157);
+        setUint32(0x20746d66);
+        setUint32(16);
+        setUint16(1);
         setUint16(numOfChan);
         setUint32(buffer.sampleRate);
-        setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-        setUint16(numOfChan * 2); // block-align
-        setUint16(16); // 16-bit
-        setUint32(0x61746164); // "data" - chunk
-        setUint32(length - pos - 4); // chunk length
+        setUint32(buffer.sampleRate * 2 * numOfChan);
+        setUint16(numOfChan * 2);
+        setUint16(16);
+        setUint32(0x61746164);
+        setUint32(length - pos - 4);
 
         for (let i = 0; i < buffer.numberOfChannels; i++) {
             channels.push(buffer.getChannelData(i));
@@ -207,8 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         while (pos < length) {
             for (let i = 0; i < numOfChan; i++) {
-                sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
                 view.setInt16(pos, sample, true);
                 pos += 2;
             }
@@ -218,40 +214,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function convertBlobToWav(blob) {
+        if (blob.size > 25 * 1024 * 1024) throw new Error('El audio supera el límite de 25 MB.');
         isAnalyzing = true;
-        loadingOverlay.classList.remove('hidden'); // Show loading early
+        loadingOverlay.classList.remove('hidden');
         syncRecordingUI();
         const arrayBuffer = await blob.arrayBuffer();
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         try {
             const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            if (audioBuffer.duration < 1 || audioBuffer.duration > 120) {
+                throw new Error('Usa un audio de 1 a 120 segundos. Para mejores resultados, graba 6–10 segundos de habla.');
+            }
             return audioBufferToWav(audioBuffer);
         } finally {
             await ctx.close();
         }
     }
 
-    // Fill the results first; show all cards together only when analysis is ready.
+    function isAudioBusy() {
+        return isAnalyzing || ['stopping', 'analyzing'].includes(recordingState);
+    }
+
     function syncWorkView() {
         const inWorkspace = !mainDashboard.classList.contains('hidden');
-        const showResults = inWorkspace && Boolean(lastResults) && recordingState === 'idle' && !isAnalyzing;
-        const showReview = inWorkspace && Boolean(pendingRecording);
+        const busy = isAudioBusy();
+        const showResults = inWorkspace && Boolean(lastResults) && recordingState === 'idle' && !busy;
+        const showReview = inWorkspace && Boolean(pendingRecording) && !busy;
         resultsGrid.classList.toggle('hidden', !showResults);
         workspaceStage.classList.toggle('hidden', !inWorkspace || showResults);
         recordingReview.classList.toggle('hidden', !showReview);
-        workspaceEmpty.classList.toggle('hidden', !inWorkspace || showResults || showReview);
+        workspaceEmpty.classList.toggle('hidden', !inWorkspace || showResults || showReview || busy);
 
         const stageMessages = {
             idle: ['Todo empieza con la voz', 'Graba un audio o sube un archivo para descubrirlo.'],
+            starting: ['Te escuchamos…', ''],
+            requesting: ['Permite el micrófono', 'Acepta el permiso en el navegador para empezar a grabar.'],
             blocked: ['Permite el micrófono', 'Revisa su permiso en el navegador y vuelve a intentarlo.'],
-            recording: ['Te escuchamos…', 'Cuando termines, podrás escuchar tu grabación.'],
-            analyzing: ['Descubriendo lo que cuenta la voz…', 'Estamos preparando tus resultados.'],
+            recording: ['Te escuchamos…', ''],
         };
-        const messageState = isAnalyzing ? 'analyzing' : recordingState === 'stopping' ? 'recording' : recordingState;
-        const message = stageMessages[messageState] || stageMessages.idle;
-        if (!workspaceEmpty.classList.contains('hidden')) {
+        const message = stageMessages[recordingState];
+        if (message && !workspaceEmpty.classList.contains('hidden')) {
             if (workspaceStageTitle.textContent !== message[0]) workspaceStageTitle.textContent = message[0];
             if (workspaceStageDescription.textContent !== message[1]) workspaceStageDescription.textContent = message[1];
+            workspaceStageDescription.classList.toggle('hidden', !message[1]);
         }
 
         if (!showResults) {
@@ -275,9 +280,12 @@ document.addEventListener('DOMContentLoaded', () => {
         syncRecordingUI();
     }
 
-    // --- Recording, review, and explicit analysis ---
     function syncRecordingUI() {
         isRecording = recordingState === 'recording';
+        const busy = isAudioBusy();
+        loadingOverlay.classList.toggle('hidden', !busy);
+        loadingOverlay.setAttribute('aria-label', recordingState === 'stopping' ? 'Preparando grabación' : 'Analizando audio');
+        mainDashboard.setAttribute('aria-busy', String(busy));
         if (!isRecording && audioTextFeedback) {
             audioTextFeedback.stop();
             audioTextFeedback = null;
@@ -286,7 +294,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnUpload.disabled = isAnalyzing || !['idle', 'blocked'].includes(recordingState);
         btnRecord.classList.toggle('is-recording', isRecording);
         btnRecord.setAttribute('aria-label', isRecording ? 'Detener grabación' : 'Grabar');
-        btnRecord.title = isRecording ? 'Detener grabación' : 'Grabar audio';
         iconRecord.src = isRecording ? 'assets/stop-white.svg' : 'assets/microphone-white.svg';
         iconRecord.alt = isRecording ? 'Detener grabación' : 'Grabar';
         syncWorkView();
@@ -313,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const permission = await navigator.permissions?.query({ name: 'microphone' });
             return permission?.state || 'unknown';
         } catch {
-            // Some browsers do not support querying the microphone permission.
+
             return 'unknown';
         }
     }
@@ -330,8 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 setRecordingState('blocked');
                 return;
             }
-            // The browser owns the first permission prompt. Only confirmed
-            // denials need an in-app message; a successful start stays quiet.
+
+            if (permission === 'prompt') setRecordingState('requesting');
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             if (generation !== recordingGeneration || mainDashboard.classList.contains('hidden')) {
                 stream.getTracks().forEach(track => track.stop());
@@ -377,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             recorder.start();
             setRecordingState('recording');
-            audioTextFeedback = window.createAudioTextFeedback(workspaceStageTitle, stream);
+            audioTextFeedback = window.createAudioTextFeedback(workspaceStageTitle, stream, recordingLevel);
         } catch (error) {
             stream?.getTracks().forEach(track => track.stop());
             if (generation === recordingGeneration) {
@@ -423,35 +430,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 setRecordingState('idle');
                 if (!mainDashboard.classList.contains('hidden')) btnRecord.focus();
             } else {
-                recordingError.textContent = 'No pudimos analizarla. Tu grabación sigue aquí para volver a intentarlo.';
+                recordingError.textContent = `${lastAnalysisError} Tu grabación sigue aquí para volver a intentarlo.`;
                 setRecordingState('review');
             }
         } catch (error) {
-            recordingError.textContent = 'No pudimos leer la grabación. Puedes escucharla, descartarla o volver a intentarlo.';
+            recordingError.textContent = error.message || 'No pudimos leer la grabación. Puedes escucharla, descartarla o volver a intentarlo.';
             setRecordingState('review');
         } finally {
             finishAnalysis();
         }
     });
 
-    // --- File Upload Logic ---
     btnUpload.addEventListener('click', () => uploadPanel.open());
 
     async function processUploadedFile(file) {
         try {
             const wavBlob = await convertBlobToWav(file);
-            await sendAudioToBackend(wavBlob, 'upload.wav');
+            const success = await sendAudioToBackend(wavBlob, 'upload.wav');
+            if (!success) uploadPanel.showError(lastAnalysisError, file);
         } catch (err) {
             console.error('Error convirtiendo archivo:', err);
             loadingOverlay.classList.add('hidden');
-            uploadPanel.showError('No pudimos leer ese audio. Prueba con otro archivo.');
+            const message = err.name === 'EncodingError' ? 'No pudimos leer ese audio. Prueba con otro archivo.' : err.message;
+            uploadPanel.showError(message || 'No pudimos leer ese audio. Prueba con otro archivo.', file);
         } finally {
             finishAnalysis();
         }
     }
 
-    // --- API Communication ---
     async function sendAudioToBackend(blob, filename) {
+        lastAnalysisError = '';
         isAnalyzing = true;
         loadingOverlay.classList.remove('hidden');
         syncRecordingUI();
@@ -467,7 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
+                const problem = await response.json().catch(() => ({}));
+                throw new Error(typeof problem.detail === 'string' ? problem.detail : 'No se pudo completar el análisis del audio.');
             }
 
             const data = await response.json();
@@ -476,20 +485,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('El análisis no devolvió todos los resultados.');
             }
             lastResults = data;
-            
-            // Update UI
+
             document.getElementById('res-demographic').textContent = data.demographic_text;
             document.getElementById('res-physical').textContent = data.physical_text;
             document.getElementById('res-emotional').textContent = data.emotional_text;
             document.getElementById('res-diagnostic').textContent = data.diagnostic_text;
             revealResultsPending = true;
-            
+
             btnExport.disabled = false;
             return true;
 
         } catch (error) {
             console.error("API Error:", error);
-            alert("Error al procesar el audio en el servidor.");
+            lastAnalysisError = error.name === 'TypeError' ? 'No se pudo contactar con el servidor.' : error.message;
             btnExport.disabled = !lastResults;
             return false;
         } finally {
@@ -497,10 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Export ---
     btnExport.addEventListener('click', () => {
         if (!lastResults) return;
-        
+
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastResults.raw_json, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -514,14 +521,11 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadAnchorNode.remove();
     });
 
-    // Restore the selected theme and its icons.
     let initialLight = htmlElement.classList.contains('light-theme');
     try {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'light' || savedTheme === 'dark') initialLight = savedTheme === 'light';
-    } catch {
-        // Use the page's default theme when browser storage is unavailable.
-    }
+    } catch {}
     setTheme(initialLight);
     syncRecordingUI();
 });

@@ -1,74 +1,66 @@
-"""
-Procesamiento de la señal de audio (Paso 1).
-"""
-import logging
-import librosa
 import numpy as np
+import soundfile as sf
+from scipy.signal import resample_poly
+from math import gcd
+from config import SAMPLE_RATE, MIN_AUDIO_SECONDS, MAX_AUDIO_SECONDS
+from src.core.data_models import AudioQuality
 
-logger = logging.getLogger(__name__)
+
+class AudioValidationError(ValueError):
+    pass
+
 
 class AudioProcessor:
-    def __init__(self, target_sr: int = 16000, vad_threshold: float = 0.01):
-        """
-        Inicializa el procesador de audio.
-        :param target_sr: Frecuencia de muestreo objetivo (Hz).
-        :param vad_threshold: Umbral de energía RMS para recortes de silencio.
-        """
+    def __init__(self, target_sr=SAMPLE_RATE):
         self.target_sr = target_sr
-        self.vad_threshold = vad_threshold
 
-    def process(self, file_path: str) -> np.ndarray:
-        """
-        Carga, remuestrea, aplica VAD y normaliza el audio.
-        :param file_path: Ruta al archivo de audio.
-        :return: Array de numpy con la señal de audio procesada.
-        """
+    def process_with_quality(self, file_path):
         try:
-            logger.info(f"Cargando audio: {file_path}")
-            # Cargar a canal mono y remuestrear
-            y, sr = librosa.load(file_path, sr=self.target_sr, mono=True)
-            
-            # Recorte temporal por energía (VAD simplificado)
-            y_trimmed = self._apply_vad(y)
-            
-            # Normalización min-max al rango [-1, 1]
-            if len(y_trimmed) > 0:
-                max_val = np.max(np.abs(y_trimmed))
-                if max_val > 0:
-                    y_normalized = y_trimmed / max_val
-                else:
-                    y_normalized = y_trimmed
-            else:
-                y_normalized = y
-                
-            logger.info("Audio procesado exitosamente.")
-            return y_normalized.astype(np.float32)
-        except Exception as e:
-            logger.error(f"Error procesando audio: {e}")
+            info = sf.info(file_path)
+            duration = info.frames / info.samplerate
+            if not MIN_AUDIO_SECONDS <= duration <= MAX_AUDIO_SECONDS:
+                raise AudioValidationError(f'Usa un audio de {MIN_AUDIO_SECONDS:g} a {MAX_AUDIO_SECONDS:g} segundos.')
+            if not 8000 <= info.samplerate <= 192000 or not 1 <= info.channels <= 8:
+                raise AudioValidationError('Frecuencia de muestreo o número de canales no admitido.')
+            samples, sr = sf.read(file_path, dtype='float32', always_2d=True)
+        except AudioValidationError:
             raise
+        except Exception as error:
+            raise AudioValidationError('No se pudo leer el archivo de audio.') from error
+        if not np.isfinite(samples).all():
+            raise AudioValidationError('El audio contiene muestras no válidas.')
+        clipping = float(np.mean(np.abs(samples) >= 0.999))
+        mono = samples.mean(axis=1)
+        mono = mono - np.mean(mono)
+        rms = float(np.sqrt(np.mean(mono.astype(np.float64) ** 2)))
+        db = float(20 * np.log10(max(rms, 1e-12)))
+        if db < -65:
+            raise AudioValidationError('El audio está en silencio o es demasiado bajo. Acerca el micrófono y vuelve a grabar.')
+        if sr != self.target_sr:
+            divisor = gcd(sr, self.target_sr)
+            mono = resample_poly(mono, self.target_sr // divisor, sr // divisor).astype(np.float32)
 
-    def _apply_vad(self, audio: np.ndarray) -> np.ndarray:
-        """
-        Aplica un Voice Activity Detection simple basado en energía RMS.
-        :param audio: Señal de audio.
-        :return: Señal de audio recortada.
-        """
-        # Calcular RMS por tramas
-        frame_length = 2048
-        hop_length = 512
-        rms = librosa.feature.rms(y=audio, frame_length=frame_length, hop_length=hop_length)[0]
-        
-        # Encontrar índices donde la energía supera el umbral
-        active_frames = np.where(rms > self.vad_threshold)[0]
-        
-        if len(active_frames) == 0:
-            logger.warning("No se detectó actividad vocal significativa. Devolviendo audio original.")
-            return audio
-            
-        start_frame = active_frames[0]
-        end_frame = active_frames[-1]
-        
-        start_sample = start_frame * hop_length
-        end_sample = min(len(audio), (end_frame * hop_length) + frame_length)
-        
-        return audio[start_sample:end_sample]
+        size = self.target_sr // 50
+        frames = np.pad(mono, (0, (-len(mono)) % size)).reshape(-1, size)
+        frame_rms = np.sqrt(np.mean(frames.astype(np.float64) ** 2, axis=1))
+        threshold = max(0.0003, float(np.max(frame_rms)) * 0.03)
+        active = np.flatnonzero(frame_rms > threshold)
+        active_seconds = len(active) * size / self.target_sr
+        if active_seconds < 0.7:
+            raise AudioValidationError('No hay suficiente audio activo. Graba varios segundos de habla clara.')
+        padding = int(0.15 * self.target_sr)
+        start = max(0, int(active[0]) * size - padding)
+        end = min(len(mono), (int(active[-1]) + 1) * size + padding)
+        trimmed = mono[start:end].astype(np.float32)
+        warnings = []
+        if active_seconds < 4:
+            warnings.append('Grabación corta: usa al menos 6–10 segundos de habla para estimaciones más estables.')
+        if clipping > 0.005:
+            warnings.append('Hay saturación en la grabación; baja la ganancia del micrófono.')
+        if db < -40:
+            warnings.append('El nivel de grabación es bajo y puede reducir la calidad del análisis.')
+        return trimmed, AudioQuality(duration, len(trimmed) / self.target_sr, active_seconds,
+                                     self.target_sr, db, clipping, warnings)
+
+    def process(self, file_path):
+        return self.process_with_quality(file_path)[0]

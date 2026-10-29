@@ -1,87 +1,79 @@
-"""
-Modelo de IA para inferencia de Edad y Género.
-"""
-import logging
-import os
-import sys
-import torch
-import librosa
-from transformers import AutoModelForAudioClassification, AutoFeatureExtractor
-from typing import Tuple
 import numpy as np
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from pathlib import Path
+import torch
+from torch import nn
+from safetensors.torch import load_file
+from transformers import Wav2Vec2Config, Wav2Vec2FeatureExtractor, Wav2Vec2Model
 from config import MODEL_AGE_GENDER, DEVICE
+from src.core.data_models import Prediction
+from src.ai_models.model_utils import ModelResource, asset, windows, exact_state, classification
 
-logger = logging.getLogger(__name__)
 
-class AgeGenderPredictor:
+class RegressionClassificationHead(nn.Module):
+    def __init__(self, config, outputs):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.dropout = nn.Dropout(config.final_dropout)
+        self.out_proj = nn.Linear(config.hidden_size, outputs)
+
+    def forward(self, features):
+        return self.out_proj(self.dropout(torch.tanh(self.dense(self.dropout(features)))))
+
+
+class TrainedAgeGenderNetwork(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.wav2vec2 = Wav2Vec2Model(config)
+        self.age = RegressionClassificationHead(config, 1)
+        self.gender = RegressionClassificationHead(config, 3)
+
+    def forward(self, audio):
+        pooled = self.wav2vec2(audio).last_hidden_state.mean(dim=1)
+        return self.age(pooled), self.gender(pooled).softmax(dim=-1)
+
+
+class AgeGenderPredictor(ModelResource):
     def __init__(self):
-        """Inicializa el modelo de transformers para edad y género."""
-        self.device = DEVICE
-        self.model = None
-        self.feature_extractor = None
-        
-        try:
-            logger.info(f"Cargando modelo de edad/género: {MODEL_AGE_GENDER} en {self.device}")
-            self.feature_extractor = AutoFeatureExtractor.from_pretrained(MODEL_AGE_GENDER)
-            self.model = AutoModelForAudioClassification.from_pretrained(MODEL_AGE_GENDER)
-            self.model.to(self.device)
-            self.model.eval()
-            logger.info("Modelo de edad/género cargado exitosamente.")
-        except Exception as e:
-            logger.error(f"Error al cargar el modelo de edad/género (fallback activado): {e}")
-            self.model = None
+        super().__init__(MODEL_AGE_GENDER)
 
-    def predict(self, audio_path: str, f0_mean: float) -> Tuple[str, float, float]:
-        """
-        Predice (género, prob_genero, edad). Si falla, utiliza fallback físico.
-        :param audio_path: Ruta al archivo.
-        :param f0_mean: Frecuencia fundamental media para el fallback.
-        :return: (Género, Probabilidad de Género, Edad)
-        """
-        if self.model is None:
-            return self._fallback_prediction(f0_mean)
-            
+    def load(self):
+        config = Wav2Vec2Config.from_json_file(asset(self.model_id, 'config.json'))
+        self.labels = [config.id2label[index] for index in range(3)]
+        if set(self.labels) != {'female', 'male', 'child'}:
+            raise ValueError('Etiquetas de edad/género inesperadas.')
+        self.processor = Wav2Vec2FeatureExtractor.from_pretrained(
+            str(Path(asset(self.model_id, 'preprocessor_config.json')).parent))
+        self.model = TrainedAgeGenderNetwork(config)
+        exact_state(self.model, load_file(asset(self.model_id, 'model.safetensors')))
+        self.model.to(DEVICE).eval()
+
+    def predict(self, audio, sr=16000):
+        if len(audio) / sr < 3:
+            missing = lambda: Prediction(status='insufficient_audio', model=self.model_id,
+                                         reason='Se necesitan al menos 3 segundos de habla para edad y perfil vocal.')
+            return missing(), missing()
+        if not self.ensure_loaded():
+            return self.unavailable(), self.unavailable()
+        ages, scores = [], []
         try:
-            audio, sr = librosa.load(audio_path, sr=self.feature_extractor.sampling_rate)
-            inputs = self.feature_extractor(audio, sampling_rate=sr, return_tensors="pt", padding=True)
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            with torch.no_grad():
-                logits = self.model(**inputs).logits
-                
-            probs = torch.nn.functional.softmax(logits[0], dim=-1).cpu().numpy()
-            
-            # Etiquetado asumiendo salidas genéricas de un clasificador Hugging Face estándar de audeering
-            labels = ['Femenino', 'Masculino', 'Desconocido']
-            
-            if len(probs) >= 2:
-                gender_idx = int(np.argmax(probs[:2]))
-                gender = labels[gender_idx]
-                gender_prob = float(probs[gender_idx])
-            else:
-                gender = "Desconocido"
-                gender_prob = 0.5
-                
-            age = 35.0
-                
-            logger.info(f"Predicción IA - Género: {gender}, Edad: {age}")
-            return gender, gender_prob, age
-            
-        except Exception as e:
-            logger.error(f"Error en inferencia de red neuronal, aplicando fallback: {e}")
-            return self._fallback_prediction(f0_mean)
-            
-    def _fallback_prediction(self, f0_mean: float) -> Tuple[str, float, float]:
-        """Predicción analítica basada en F0 si el modelo falla."""
-        logger.info("Utilizando Fallback para Edad y Género.")
-        if f0_mean == 0:
-            return "Desconocido", 0.0, 30.0
-            
-        if f0_mean > 165:
-            gender = "Femenino"
-        else:
-            gender = "Masculino"
-            
-        return gender, 0.8, 35.0 # Edad genérica
+            for part in windows(audio, sr):
+                values = self.processor(part, sampling_rate=sr, return_tensors='pt').input_values.to(DEVICE)
+                with torch.inference_mode():
+                    age, gender = self.model(values)
+                ages.append(float(age.item()) * 100)
+                scores.append(gender[0].cpu().numpy())
+            if not ages or not np.isfinite(ages).all() or any(not 0 <= age <= 110 for age in ages):
+                raise ValueError('La regresión de edad no produjo valores válidos.')
+            spread = float(np.ptp(ages))
+            age = Prediction(value=round(float(np.median(ages)), 1), status='ok', model=self.model_id,
+                             details={'segment_estimates_years': ages, 'segment_spread_years': round(spread, 1),
+                                      'approximate': True, 'calibrated_error_interval': None})
+            if spread > 20:
+                age.value, age.status, age.reason = None, 'uncertain', 'La edad cambia demasiado entre fragmentos.'
+            labels = [{'female': 'Voz femenina', 'male': 'Voz masculina', 'child': 'Voz infantil'}[label] for label in self.labels]
+            gender = classification(np.mean(scores, axis=0), labels, self.model_id,
+                                    details={'segments': len(scores), 'attribute': 'perfil vocal, no identidad de género'})
+            return gender, age
+        except Exception as error:
+            return (Prediction(status='error', model=self.model_id, reason=str(error)),
+                    Prediction(status='error', model=self.model_id, reason=str(error)))

@@ -1,36 +1,63 @@
-# ACUS-220: Detector de Características Humanas a través de la Voz
+# Voihunt — ACUS-220
 
-Proyecto para la asignatura de Acústica Computacional. Sistema en Python orientado al análisis y la extracción automática de características biométricas, físicas y emocionales a partir de grabaciones de voz humana.
+Aplicación de análisis de voz para Acústica Computacional. Permite grabar o
+subir un audio, revisar los resultados y descargar el reporte en JSON.
 
-## Descripción del Proyecto
+## Qué analiza
 
-El sistema procesa archivos de audio o grabaciones en tiempo real para estimar diversos atributos del hablante. La arquitectura se plantea bajo un enfoque **híbrido**: combina el procesamiento digital de señales para la extracción de métricas físicas de la onda con modelos de aprendizaje profundo preentrenados para la clasificación automática. 
+- Edad aproximada y perfil vocal.
+- Idioma y seis variedades regionales del español.
+- Expresión vocal: neutral, enojo, alegría/entusiasmo y tristeza.
+- Tono, variación tonal, jitter, shimmer, armonicidad y métricas openSMILE.
 
-Los resultados de ambos módulos se cruzan en una capa de validación para contrastar las predicciones del modelo con las métricas del sonido, asignando un grado de confianza a las inferencias generadas.
+Las estimaciones pueden fallar o quedar como no concluyentes. El modelo de
+emociones está entrenado en inglés; en otros idiomas el resultado es experimental.
+No se evalúan tabaquismo, fatiga, estrés ni enfermedades respiratorias.
 
-## Características a Detectar
+## Ejecutar
 
-* **Perfil y Demografía:** Género, edad estimada y acento regional o nacionalidad.
-* **Estado Físico y Hábitos:** Hábito de fumar, fatiga/somnolencia e indicadores de condiciones respiratorias o neurológicas.
-* **Estado Mental y Emocional:** Nivel de estrés y clasificación de emociones primarias.
+Se necesita Python y un entorno con las dependencias de `app/requirements.txt`.
+Si ya existe el entorno del proyecto, desde la raíz:
 
-## Arquitectura y Flujo del Sistema
+```powershell
+app/venv/Scripts/python.exe -m pip install -r app/requirements.txt
+app/venv/Scripts/python.exe app/scripts/download_models.py
+app/venv/Scripts/python.exe app/scripts/prepare_models.py
+app/venv/Scripts/python.exe app/main.py
+```
 
-1. **Captura y Preprocesamiento:** Recepción de audio, estandarización de canal y remoción de silencios o ruido.
-2. **Extracción Acústica Física:** Cálculo de parámetros físicos de la onda sonora (tono fundamental, resonancias, energía y variabilidad fónica).
-3. **Inferencia con Modelos Preentrenados:** Procesamiento del audio mediante redes neuronales especializadas para la clasificación de atributos de alto nivel.
-4. **Cruce y Validación (Motor Híbrido):** Script de integración que compara los valores físicos obtenidos con las predicciones de los modelos para verificar consistencia y detectar discrepancias.
-5. **Visualización:** Interfaz gráfica para la presentación de métricas físicas, espectrogramas y tarjetas de diagnóstico validado.
+La aplicación queda en http://127.0.0.1:8000. Los modelos se guardan en
+`app/models/`; los pesos y el entorno virtual no se incluyen en Git.
 
+## Estructura
 
-## Interfaz
+- `app/main.py`: servidor FastAPI.
+- `app/src/api/`: carga de archivos y estado de modelos.
+- `app/src/preprocessing/`: lectura y validación de audio.
+- `app/src/acoustic/`: mediciones con Praat y openSMILE.
+- `app/src/ai_models/`: carga e inferencia de los modelos.
+- `app/src/core/`: análisis completo y estructura del reporte.
+- `app/src/ui/public/`: interfaz HTML, CSS y JavaScript.
+- `app/scripts/`: descarga, preparación y comprobación de modelos.
+- `app/tests/`: pruebas del backend.
 
-El fondo de puntos se adapta al modo claro y oscuro. La implementación actual
-y la preparación del componente React se describen en
-[Fondo de puntos](Documentacion/fondo-puntos.md).
-La descripción del inicio, el botón CONTINUAR y la transición circular de tema
-se describen en [Inicio y temas](Documentacion/inicio-y-temas.md).
+La interfaz se sirve directamente desde FastAPI y no requiere Node ni un build.
 
-## LINKS
-https://mozilladatacollective.com/datasets/cmqi28y2v004imf076oh7e5zs
-https://www.kaggle.com/datasets/toponowicz/spoken-language-identification
+## Pruebas
+
+```powershell
+app/venv/Scripts/python.exe -m pip install -r app/requirements-dev.txt
+app/venv/Scripts/python.exe -m unittest discover -s app/tests -v
+app/venv/Scripts/python.exe app/scripts/validate_models.py
+```
+
+## Documentación
+
+- [Análisis de voz, modelos y limitaciones](Documentacion/analisis-voz.md).
+- [Interfaz, temas y grabación](Documentacion/inicio-y-temas.md).
+- [Fondo de puntos](Documentacion/fondo-puntos.md).
+
+## Datos de referencia
+
+- [Mozilla Data Collective](https://mozilladatacollective.com/datasets/cmqi28y2v004imf076oh7e5zs).
+- [Spoken Language Identification](https://www.kaggle.com/datasets/toponowicz/spoken-language-identification).

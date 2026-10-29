@@ -1,74 +1,55 @@
-"""
-Extracción de características usando Praat-Parselmouth.
-"""
 import logging
 import parselmouth
 from parselmouth.praat import call
 import numpy as np
-from typing import Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
-class ParselmouthExtractor:
-    def __init__(self):
-        """Inicializa el extractor de características físicas."""
-        pass
 
-    def extract_features(self, audio_path: str) -> Dict[str, float]:
-        """
-        Extrae F0, formantes, jitter, shimmer y HNR usando Praat.
-        :param audio_path: Ruta al archivo de audio.
-        :return: Diccionario con las características extraídas.
-        """
-        features = {
-            'f0_mean': 0.0, 'f0_std': 0.0, 'f0_min': 0.0, 'f0_max': 0.0,
-            'f1_mean': 0.0, 'f2_mean': 0.0,
-            'jitter': 0.0, 'shimmer': 0.0, 'hnr': 0.0
-        }
+def finite(value):
+    return float(value) if np.isfinite(value) else None
+
+
+class ParselmouthExtractor:
+    def extract_features(self, audio_path):
+        result = {key: None for key in ['f0_mean', 'f0_std', 'f0_min', 'f0_max', 'f1_mean',
+                                       'f2_mean', 'jitter', 'shimmer', 'hnr', 'pitch_variation_semitones']}
+        result.update(voiced_fraction=0.0, warnings=[])
+        sound = parselmouth.Sound(str(audio_path))
         try:
-            logger.info(f"Parselmouth procesando: {audio_path}")
-            sound = parselmouth.Sound(audio_path)
-            
-            # 1. Extracción de F0 (Pitch)
-            pitch = call(sound, "To Pitch", 0.0, 75, 600) # time_step, pitch_floor, pitch_ceiling
-            f0_values = pitch.selected_array['frequency']
-            f0_values = f0_values[f0_values > 0] # Filtrar frames sin pitch (silencio)
-            
-            if len(f0_values) > 0:
-                features['f0_mean'] = float(np.mean(f0_values))
-                features['f0_std'] = float(np.std(f0_values))
-                features['f0_min'] = float(np.min(f0_values))
-                features['f0_max'] = float(np.max(f0_values))
-                
-            # 2. Formantes (F1, F2)
-            formant = call(sound, "To Formant (burg)", 0.0, 5, 5500, 0.025, 50)
-            f1_list = []
-            f2_list = []
-            for t in np.arange(0, sound.xmax, 0.01):
-                f1 = call(formant, "Get value at time", 1, t, 'Hertz', 'Linear')
-                f2 = call(formant, "Get value at time", 2, t, 'Hertz', 'Linear')
-                if not np.isnan(f1): f1_list.append(f1)
-                if not np.isnan(f2): f2_list.append(f2)
-                
-            if f1_list: features['f1_mean'] = float(np.mean(f1_list))
-            if f2_list: features['f2_mean'] = float(np.mean(f2_list))
-            
-            # 3. Jitter y Shimmer
-            pointProcess = call(sound, "To PointProcess (periodic, cc)", 75, 600)
-            features['jitter'] = call(pointProcess, "Get jitter (local)", 0, 0, 0.0001, 0.02, 1.3)
-            features['shimmer'] = call([sound, pointProcess], "Get shimmer (local)", 0, 0, 0.0001, 0.02, 1.3, 1.6)
-            
-            if np.isnan(features['jitter']): features['jitter'] = 0.0
-            if np.isnan(features['shimmer']): features['shimmer'] = 0.0
-            
-            # 4. HNR (Harmonics-to-Noise Ratio)
-            harmonicity = call(sound, "To Harmonicity (cc)", 0.01, 75, 0.1, 1.0)
-            hnr = call(harmonicity, "Get mean", 0, 0)
-            if not np.isnan(hnr):
-                features['hnr'] = float(hnr)
-                
-            logger.info("Características físicas extraídas con éxito.")
-            return features
-        except Exception as e:
-            logger.error(f"Error en ParselmouthExtractor: {e}")
-            return features
+            pitch = sound.to_pitch_ac(time_step=0.01, pitch_floor=60, pitch_ceiling=600)
+            contour = pitch.selected_array['frequency']
+            voiced = contour > 0
+            f0 = contour[voiced]
+            result['voiced_fraction'] = float(np.mean(voiced)) if len(voiced) else 0.0
+            if len(f0):
+                result.update(f0_mean=float(np.mean(f0)), f0_std=float(np.std(f0)),
+                              f0_min=float(np.quantile(f0, 0.05)), f0_max=float(np.quantile(f0, 0.95)),
+                              pitch_variation_semitones=float(np.std(12 * np.log2(f0))))
+                formant = sound.to_formant_burg(time_step=0.02)
+                times = pitch.xs()[voiced][::3]
+                for number in [1, 2]:
+                    values = [formant.get_value_at_time(number, float(time)) for time in times]
+                    valid = [value for value in values if np.isfinite(value)]
+                    result[f'f{number}_mean'] = float(np.mean(valid)) if valid else None
+
+
+                changes = np.diff(np.r_[False, voiced, False].astype(int))
+                runs = list(zip(np.flatnonzero(changes == 1), np.flatnonzero(changes == -1)))
+                first, last = max(runs, key=lambda run: run[1] - run[0])
+                begin, end = float(pitch.xs()[first]), float(pitch.xs()[last - 1])
+                if end - begin >= 0.4:
+                    fragment = sound.extract_part(from_time=begin, to_time=end, preserve_times=False)
+                    points = call(fragment, 'To PointProcess (periodic, cc)', 60, 600)
+                    result['jitter'] = finite(call(points, 'Get jitter (local)', 0, 0, 0.0001, 0.02, 1.3))
+                    result['shimmer'] = finite(call([fragment, points], 'Get shimmer (local)', 0, 0, 0.0001, 0.02, 1.3, 1.6))
+            harmonicity = sound.to_harmonicity_cc(time_step=0.01, minimum_pitch=60)
+            values = harmonicity.values.flatten()
+            values = values[np.isfinite(values) & (values > -100)]
+            result['hnr'] = float(np.mean(values)) if len(values) else None
+        except Exception as error:
+            logger.exception('Medición acústica parcial')
+            result['warnings'].append(f'Algunas métricas acústicas no se pudieron medir: {type(error).__name__}.')
+        if result['voiced_fraction'] < 0.1:
+            result['warnings'].append('No se detectó suficiente voz periódica; las estimaciones del hablante se omiten.')
+        return result

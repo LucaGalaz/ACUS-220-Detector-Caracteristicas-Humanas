@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ACUS-220 Voihunt</title>
-    <link rel="stylesheet" href="style.css?v=voice-feedback-9">
+    <link rel="stylesheet" href="style.css?v=cleanup-14">
 </head>
 <body>
     <svg class="vh-dot-pattern" width="100%" height="100%" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
@@ -33,7 +33,6 @@
             </div>
         </header>
 
-        <!-- Splash Screen -->
         <div class="vh-splash" id="splash-screen">
             <p class="vh-splash-welcome vh-haze">Bienvenido a</p>
             <h1 class="vh-splash-title">Voihunt</h1>
@@ -41,12 +40,14 @@
             <button id="btn-enter-splash" class="vh-splash-enter" type="button">CONTINUAR</button>
         </div>
 
-        <!-- Main Dashboard 2x2 + 1 -->
         <main class="vh-dashboard hidden" id="main-dashboard">
             <div id="workspace-stage" class="vh-workspace-stage">
                 <div id="workspace-empty" class="vh-workspace-empty vh-haze" role="status" aria-live="polite">
                     <h2 id="workspace-stage-title">Todo empieza con la voz</h2>
                     <p id="workspace-stage-description">Graba un audio o sube un archivo para descubrirlo.</p>
+                    <div id="recording-level" class="vh-recording-level hidden" role="meter" aria-label="Nivel del micrófono" aria-valuemin="-72" aria-valuemax="0" aria-valuenow="-72" aria-valuetext="Sin señal">
+                        <span class="vh-level-segments" aria-hidden="true"></span>
+                    </div>
                 </div>
                 <section id="recording-review" class="vh-recording-review hidden" aria-labelledby="recording-review-title" tabindex="-1">
                     <div class="vh-recording-review-heading">
@@ -63,41 +64,36 @@
                 </section>
             </div>
             <div id="results-grid" class="vh-results-grid hidden" role="region" aria-label="Resultados del análisis">
-                <!-- Left Grid (2x2) -->
-                <div class="vh-grid-left">
+                <div class="vh-results-toolbar">
+                    <h2>Resultados del análisis</h2>
+                    <button id="btn-export" class="vh-export-button" type="button" aria-label="Descargar reporte JSON" title="Descargar reporte JSON" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                        <span>Exportar JSON</span>
+                    </button>
+                </div>
+                <div class="vh-results-layout">
                     <div class="vh-card" id="card-demographic">
                         <h3>PERFIL DEMOGRAFICO</h3>
                         <div class="vh-card-content" id="res-demographic"></div>
                     </div>
                     <div class="vh-card" id="card-physical">
-                        <h3>ESTADO FISICO Y HABITOS</h3>
+                        <h3>MEDICIONES DE LA VOZ</h3>
                         <div class="vh-card-content" id="res-physical"></div>
                     </div>
                     <div class="vh-card" id="card-emotional">
-                        <h3>ESTADO EMOCIONAL</h3>
+                        <h3>EXPRESIÓN VOCAL</h3>
                         <div class="vh-card-content" id="res-emotional"></div>
                     </div>
-                    <div class="vh-card" id="card-export">
-                        <h3>EXPORTACION</h3>
-                        <div class="vh-card-content vh-center">
-                            <button id="btn-export" class="vh-btn-secondary" disabled>Descargar Reporte JSON</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column (1 full height) -->
-                <div class="vh-grid-right">
                     <div class="vh-card" id="card-diagnostic">
-                        <h3>VALIDACION Y DIAGNOSTICO</h3>
+                        <h3>CALIDAD Y LIMITACIONES</h3>
                         <div class="vh-card-content" id="res-diagnostic"></div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Floating Audio Dock -->
         <div class="vh-audio-dock hidden" id="audio-dock" role="group" aria-label="Controles de audio">
-            <button id="btn-record" class="vh-dock-btn vh-btn-record" aria-label="Grabar" title="Grabar audio">
+            <button id="btn-record" class="vh-dock-btn vh-btn-record" aria-label="Grabar">
                 <img id="icon-record" src="assets/microphone-white.svg" alt="Grabar">
             </button>
 
@@ -143,14 +139,12 @@
         </div>
     </dialog>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="vh-loading-overlay hidden">
-        <div class="vh-spinner"></div>
-        <p>Procesando Audio...</p>
+    <div id="loading-overlay" class="vh-loading-overlay hidden" role="status" aria-label="Analizando audio">
+        <div class="vh-spinner" aria-hidden="true"></div>
     </div>
 
-    <script src="audio-text-feedback.js?v=voice-feedback-9"></script>
-    <script src="file-upload.js?v=voice-feedback-9"></script>
-    <script src="app.js?v=voice-feedback-9"></script>
+    <script src="audio-text-feedback.js?v=cleanup-14"></script>
+    <script src="file-upload.js?v=cleanup-14"></script>
+    <script src="app.js?v=cleanup-14"></script>
 </body>
 </html>

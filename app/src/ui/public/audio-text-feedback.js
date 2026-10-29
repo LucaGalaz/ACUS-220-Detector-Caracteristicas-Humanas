@@ -1,16 +1,22 @@
-// The text follows the captured signal; no output is connected to the speakers.
-window.createAudioTextFeedback = function (element, stream) {
+window.createAudioTextFeedback = function (element, stream, meter = null) {
     let context;
     let source;
     let analyser;
     let frame = null;
     let active = true;
-    const text = element.textContent;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const letters = [];
-    const offsets = [];
-    let energy = 0;
     let lastPaint = 0;
+    const floorDb = -72;
+    const segmentCount = 24;
+    const segments = [];
+
+    function setLevel(db) {
+        const level = (db - floorDb) / -floorDb;
+        const count = Math.round(level * segmentCount);
+        segments.forEach((segment, index) => segment.classList.toggle('is-active', index < count));
+        element.style.setProperty('--vh-audio-energy', level.toFixed(4));
+        meter?.setAttribute('aria-valuenow', db.toFixed(1));
+        meter?.setAttribute('aria-valuetext', db === floorDb ? 'Sin señal' : `${Math.round(db)} dB`);
+    }
 
     function stop() {
         active = false;
@@ -18,11 +24,10 @@ window.createAudioTextFeedback = function (element, stream) {
         source?.disconnect();
         analyser?.disconnect();
         if (context && context.state !== 'closed') context.close().catch(() => {});
+        setLevel(floorDb);
         element.classList.remove('vh-audio-reactive');
         element.style.removeProperty('--vh-audio-energy');
-        element.style.removeProperty('transform');
-        element.removeAttribute('aria-label');
-        if (letters.length) element.textContent = text;
+        meter?.classList.add('hidden');
     }
 
     try {
@@ -33,19 +38,20 @@ window.createAudioTextFeedback = function (element, stream) {
         source.connect(analyser);
         if (context.state === 'suspended') context.resume().catch(() => {});
         const samples = new Float32Array(analyser.fftSize);
-        const fragment = document.createDocumentFragment();
-        for (const character of text) {
-            const letter = document.createElement('span');
-            letter.className = 'vh-voice-letter';
-            letter.textContent = character;
-            letter.setAttribute('aria-hidden', 'true');
-            fragment.appendChild(letter);
-            letters.push(letter);
-            offsets.push(0);
+        const container = meter?.querySelector('.vh-level-segments');
+        if (container) {
+            const fragment = document.createDocumentFragment();
+            for (let index = 0; index < segmentCount; index++) {
+                const segment = document.createElement('span');
+                segment.className = 'vh-level-segment';
+                segments.push(segment);
+                fragment.appendChild(segment);
+            }
+            container.replaceChildren(fragment);
         }
-        element.replaceChildren(fragment);
-        element.setAttribute('aria-label', text);
+        setLevel(floorDb);
         element.classList.add('vh-audio-reactive');
+        meter?.classList.remove('hidden');
 
         function paint(timestamp) {
             if (!active) return;
@@ -54,24 +60,15 @@ window.createAudioTextFeedback = function (element, stream) {
                 let sum = 0;
                 for (const sample of samples) sum += sample * sample;
                 const rms = Math.sqrt(sum / samples.length);
-                const target = Math.min(1, Math.max(0, rms - 0.004) * 12);
-                energy += (target - energy) * (target > energy ? 0.6 : 0.25);
-                if (energy < 0.001) energy = 0;
-                element.style.setProperty('--vh-audio-energy', energy.toFixed(4));
-                element.style.transform = reducedMotion.matches ? 'none' : `scale(${(1 + energy * 0.035).toFixed(4)})`;
-                letters.forEach((letter, index) => {
-                    const sample = samples[Math.floor(index / Math.max(1, letters.length - 1) * (samples.length - 1))];
-                    const targetOffset = reducedMotion.matches ? 0 : -Math.max(-1, Math.min(1, sample * 3)) * energy * 6;
-                    offsets[index] += (targetOffset - offsets[index]) * 0.5;
-                    letter.style.transform = reducedMotion.matches ? 'none' : `translateY(${offsets[index].toFixed(2)}px)`;
-                });
+                const db = rms > 0 ? Math.max(floorDb, Math.min(0, 20 * Math.log10(rms))) : floorDb;
+                setLevel(db);
                 lastPaint = timestamp;
             }
             frame = requestAnimationFrame(paint);
         }
         frame = requestAnimationFrame(paint);
     } catch {
-        // Capturing audio must still work if visual feedback is unavailable.
+
         stop();
     }
     return { stop };

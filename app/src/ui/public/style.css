@@ -1,10 +1,8 @@
-/* ── GLOBAL RESET & VARIABLES ── */
 :root,
 html.dark-theme {
     color-scheme: dark;
     --vh-font: "Inter", "Segoe UI", sans-serif;
-    
-    /* Dark Theme (Default) */
+
     --vh-bg-color: #000000;
     --vh-dot-color: #ffffff;
     --vh-text-primary: #ffffff;
@@ -12,7 +10,7 @@ html.dark-theme {
     --vh-card-bg: rgba(255, 255, 255, 0.03);
     --vh-card-border: rgba(255, 255, 255, 0.08);
     --vh-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    
+
     --vh-accent: #ffffff;
     --vh-accent-hover: #e0e0e0;
     --vh-accent-text: #000000;
@@ -32,7 +30,7 @@ html.dark-theme {
 
 html.light-theme {
     color-scheme: light;
-    /* Light Theme */
+
     --vh-bg-color: #ffffff;
     --vh-dot-color: #000000;
     --vh-text-primary: #000000;
@@ -40,7 +38,7 @@ html.light-theme {
     --vh-card-bg: rgba(255, 255, 255, 0.6);
     --vh-card-border: rgba(0, 0, 0, 0.16);
     --vh-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-    
+
     --vh-accent: #000000;
     --vh-accent-hover: #333333;
     --vh-accent-text: #ffffff;
@@ -70,7 +68,7 @@ body, html {
     color: var(--vh-text-primary);
     width: 100%;
     height: 100vh;
-    overflow: hidden; /* STRICT VIEWPORT LOCK */
+    overflow: hidden;
 
 }
 
@@ -88,7 +86,6 @@ body, html {
     mask-image: radial-gradient(circle at center, white, transparent 70%);
 }
 
-/* ── LAYOUT ENFORCEMENT ── */
 .vh-workspace {
     position: relative;
     z-index: 1;
@@ -96,10 +93,9 @@ body, html {
     flex-direction: column;
     width: 100%;
     height: 100vh;
-    padding: 24px 32px 100px 32px; /* Bottom padding for dock */
+    padding: 24px 32px 100px 32px;
 }
 
-/* ── HEADER ── */
 .vh-header {
     display: flex;
     justify-content: space-between;
@@ -126,10 +122,9 @@ body, html {
 }
 
 .vh-logo-area img {
-    height: 48px; /* Agranda logo */
+    height: 48px;
 }
 
-/* Mostrar título en el header */
 .vh-brand-text {
     font-weight: 800;
     font-size: 1.5rem;
@@ -142,7 +137,6 @@ body, html {
     gap: 24px;
 }
 
-/* ── ANIMATED THEME TOGGLE ── */
 .vh-theme-toggle {
     display: inline-flex;
     align-items: center;
@@ -205,7 +199,6 @@ html.theme-fading .vh-splash-description {
     transition: background-color 450ms ease, color 450ms ease, border-color 450ms ease, fill 450ms ease;
 }
 
-/* ── SPLASH SCREEN ── */
 .vh-splash {
     flex: 1;
     display: flex;
@@ -263,7 +256,6 @@ html.theme-fading .vh-splash-description {
     pointer-events: none;
 }
 
-/* HeroUI-inspired soft button, with press and ripple feedback. */
 .vh-splash-enter {
     position: relative;
     overflow: hidden;
@@ -304,7 +296,6 @@ html.theme-fading .vh-splash-description {
     .vh-theme-toggle, .vh-splash-enter { transition: none; }
 }
 
-/* ── AUDIO UPLOAD DIALOG ── */
 .vh-upload-dialog {
     width: min(480px, calc(100vw - 32px));
     max-height: calc(100dvh - 32px);
@@ -356,7 +347,6 @@ html.theme-fading .vh-splash-description {
 @media (max-width: 480px) { .vh-upload-dialog { padding: 20px; } .vh-upload-dropzone { min-height: 240px; padding-inline: 12px; } }
 @media (prefers-reduced-motion: reduce) { .vh-upload-dialog[open] { animation: none; } .vh-upload-dropzone, .vh-upload-icon-card { transition: none; } }
 
-/* A stopped recording stays here until the user analyzes or discards it. */
 .vh-recording-review {
     width: min(600px, 100%);
     flex-shrink: 0;
@@ -377,7 +367,6 @@ html.theme-fading .vh-splash-description {
 .vh-recording-review-actions button:disabled, .vh-dock-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 #recording-error:not(:empty) { margin-top: 10px; }
 
-/* ── DASHBOARD GRID ── */
 .vh-dashboard {
     flex: 1;
     display: flex;
@@ -399,42 +388,76 @@ html.theme-fading .vh-splash-description {
 .vh-workspace-empty { max-width: 32rem; padding: 16px; text-align: center; }
 .vh-workspace-empty h2 { margin-bottom: 12px; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; letter-spacing: -0.035em; }
 .vh-workspace-empty h2.vh-audio-reactive {
-    white-space: nowrap;
-    transform-origin: center;
     text-shadow: 0 0 calc(var(--vh-audio-energy, 0) * 12px) color-mix(in srgb, var(--vh-text-primary) 35%, transparent);
 }
-.vh-voice-letter { display: inline-block; white-space: pre; will-change: transform; }
 .vh-workspace-empty p { color: var(--vh-text-secondary); font-size: 0.95rem; line-height: 1.6; text-wrap: balance; }
+.vh-recording-level {
+    width: min(240px, 100%);
+    margin: 24px auto 0;
+    padding: 8px 0;
+    color: var(--vh-text-primary);
+    pointer-events: none;
+}
+.vh-level-segments { display: flex; gap: 4px; height: 24px; }
+.vh-level-segment {
+    flex: 1;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.12;
+}
+.vh-level-segment.is-active { opacity: 1; }
 
 .vh-results-grid {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+}
+.vh-results-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+.vh-results-toolbar h2 { font-size: 0.9rem; font-weight: 500; color: var(--vh-text-secondary); }
+.vh-export-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    flex-shrink: 0;
+    padding: 0 12px;
+    border: 1px solid var(--vh-card-border);
+    border-radius: 10px;
+    background: var(--vh-bg-color);
+    color: var(--vh-text-secondary);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+.vh-export-button:hover { background: var(--vh-soft-bg); color: var(--vh-text-primary); }
+.vh-export-button:focus-visible { outline: 2px solid var(--vh-text-primary); outline-offset: 3px; }
+.vh-export-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.vh-results-layout {
+    flex: 1;
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 16px;
     min-height: 0;
 }
 
-.vh-grid-left {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: repeat(2, minmax(0, 1fr)); /* STRICT 50/50 LOCK */
-    gap: 16px;
-    height: 100%;
-}
-
-.vh-grid-right {
-    height: 100%;
-}
-
 @media (max-width: 760px) {
-    .vh-results-grid { flex: 0 0 auto; grid-template-columns: 1fr; }
-    .vh-grid-left { height: auto; grid-template-columns: 1fr; grid-template-rows: none; }
-    .vh-grid-right { height: auto; }
+    .vh-results-grid { flex: 0 0 auto; }
+    .vh-results-layout { grid-template-columns: 1fr; grid-template-rows: none; }
     .vh-results-grid .vh-card { height: auto; min-height: 180px; }
     .vh-results-grid .vh-card-content { overflow-y: visible; }
 }
+@media (max-width: 480px) {
+    .vh-results-toolbar h2 { font-size: 0.8rem; }
+    .vh-export-button { padding-inline: 9px; font-size: 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) { .vh-export-button { transition: none; } }
 
-/* ── CARDS (GLASSMORPHISM) ── */
 .vh-card {
     background: var(--vh-card-bg);
     backdrop-filter: blur(12px);
@@ -463,16 +486,9 @@ html.theme-fading .vh-splash-description {
     overflow-y: auto;
     font-size: 0.95rem;
     line-height: 1.5;
-    white-space: pre-wrap; /* For text blocks */
+    white-space: pre-wrap;
 }
 
-.vh-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ── FLOATING AUDIO DOCK ── */
 .vh-audio-dock {
     position: fixed;
     bottom: 24px;
@@ -485,7 +501,7 @@ html.theme-fading .vh-splash-description {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--vh-dock-border);
-    border-radius: 9999px; /* Capsule */
+    border-radius: 9999px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -511,13 +527,9 @@ html.theme-fading .vh-splash-description {
 .vh-dock-btn img {
     width: 20px;
     height: 20px;
-}
-
-.vh-dock-btn img {
     filter: var(--vh-btn-icon-filter);
 }
 
-/* Microphone / stop button */
 .vh-btn-record {
     background-color: var(--vh-accent);
 }
@@ -532,7 +544,6 @@ html.theme-fading .vh-splash-description {
     .vh-dock-btn:enabled:hover { transform: none; }
 }
 
-/* Recording State Pulse */
 .vh-btn-record.is-recording {
     animation: pulse-record 1.5s infinite;
 }
@@ -543,28 +554,10 @@ html.theme-fading .vh-splash-description {
     100% { box-shadow: 0 0 0 0 rgba(var(--vh-pulse-color), 0); }
 }
 
-/* Right Button (Upload) */
 .vh-btn-upload {
     background-color: var(--vh-accent);
 }
 
-/* ── SECONDARY BUTTONS ── */
-.vh-btn-secondary {
-    background: var(--vh-accent);
-    color: var(--vh-accent-text);
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-.vh-btn-secondary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ── LOADING SPINNER ── */
 .vh-loading-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -587,7 +580,7 @@ html.theme-fading .vh-splash-description {
     width: 40px;
     height: 40px;
     border: 4px solid rgba(255,255,255,0.3);
-    border-top-color: var(--vh-accent);
+    border-top-color: #ffffff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
