@@ -79,7 +79,7 @@ ACUS-220-Detector-Caracteristicas-Humanas/
 1. **Clonar el repositorio:**
 
    ```
-   git clone https://github.com/tu-usuario/ACUS-220-Detector-Caracteristicas-Humanas.git
+   git clone https://github.com/LucaGalaz/ACUS-220-Detector-Caracteristicas-Humanas.git
    cd ACUS-220-Detector-Caracteristicas-Humanas
    
    ```
